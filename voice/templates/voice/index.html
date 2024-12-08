@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ServiceFinder</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css'%}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200;700&family=Press+Start+2P&display=swap"
+        rel="stylesheet">
+
+</head>
+
+<body>
+    <nav>
+        <ul>
+            <li>
+                <p>Service Finder</p>
+            </li>
+            <li class="search">
+                <input type="text" placeholder="¿Qué necesitas hoy?" />
+                <span>🔎</span>
+            </li>
+        </ul>
+    </nav>
+    <main>
+        <button id="startRecording">
+            <div>
+                <div>
+                    <img src="{% static 'assets/logo.png' %}" alt="ServiceFinder">
+                </div>
+                <div></div>
+            </div>
+        </button>
+        <p id="texto">
+            Busca ahora, <br> encuentra a quien necesitas
+        </p>
+        <h1>Respuesta:</h1>
+        <p id="respuesta"></p>
+        <img id="imagen">
+    </main>
+</body>
+
+<script defer>
+    function makeid(length) {
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < length) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+          counter += 1;
+        }
+        return result;
+    }
+    var respuesta = document.getElementById('respuesta');
+    var imagen = document.getElementById('imagen');
+    var audioId = makeid(5)
+    var contador = 0
+    var ip = window.location.hostname;
+    var audio = document.createElement("audio");
+
+    document.getElementById("startRecording").onclick = () => {
+        let e = document.getElementById("startRecording")
+        if (e.classList.contains("recording")) {
+            // stop recording
+            e.classList.remove("recording");
+            document.getElementById("texto")
+                .innerHTML = "Busca ahora, <br> encuentra a quien necesitas";
+        } else {
+            // start recording
+            e.classList.add("recording");
+            document.getElementById("texto")
+                .innerHTML = "Te escuchamos, <br> ¿Qué necesitas hoy?";
+        }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+    let mediaRecorder;
+    let chunks = [];
+    var grabando = false;
+
+    const startRecordingButton = document.getElementById('startRecording');
+
+    startRecordingButton.addEventListener('click', () => {
+        if (!grabando)
+        {
+            grabando = true;
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then((stream) => {
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+                        const audioUrl = URL.createObjectURL(audioBlob);
+                    };
+
+                    mediaRecorder.start();
+                })
+                .catch((error) => {
+                    console.error('Error al acceder al micrófono:', error);
+                });
+        }
+        else
+        {
+            grabando = false;
+            mediaRecorder.stop();
+
+            mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(chunks, { type: 'audio/wav' });
+
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'grabacion.wav');
+            request = new XMLHttpRequest();
+            request.onreadystatechange = function(){
+                if (this.readyState==4)
+                {
+                    if (this.status==200)
+                    {
+                        audio.pause();
+                        audio.src="http://"+ip+":8000/media/"+audioId+"-"+contador+".mp3";
+                        contador+=1;
+                        audio.play();
+                        respuesta.innerHTML=request.response;
+                        if (request.response.includes("plomer"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/plomero.jpg";
+                        }
+                        if (request.response.includes("electricista"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/electricista.jpg";
+                        }
+                        if (request.response.includes("mariachi"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/mariachi.jpg";
+                        }
+                        if (request.response.includes("mariachi"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/mariachi.jpeg";
+                        }
+                        if (request.response.includes("costurer"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/costurero.jpg";
+                        }
+                        if (request.response.includes("tecnic"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/tecnico.jpg";
+                        }
+                        if (request.response.includes("aseador"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/aseador.jpg";
+                        }
+                        if (request.response.includes("músic"))
+                        {
+                            imagen.src="http://"+ip+":8000/media/musico.jpeg";
+                        }
+                    }
+                    if (this.status==204)
+                    {
+                        console.log("error");
+                    }
+                }
+            }
+            request.open("POST","sendAudio/?nombre="+audioId+"-"+contador);
+            request.send(formData);
+            chunks=[]
+    };
+        }
+    });
+});
+</script>
+
+</html>
